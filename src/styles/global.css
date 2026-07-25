@@ -1,136 +1,59 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
-@layer base {
-  html,
-  body {
-    @apply h-full m-0 overflow-hidden bg-ink-950 text-mist-200 font-body antialiased;
-  }
-
-  #map {
-    @apply absolute inset-0 h-full w-full;
-  }
-}
-
-@layer components {
-  .glass-panel {
-    @apply bg-ink-900/70 backdrop-blur-md border border-white/10 shadow-glass rounded-2xl;
-  }
-
-  .pill-button {
-    @apply inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5
-      px-3 py-1.5 text-xs font-medium text-mist-200 transition-all duration-150
-      hover:bg-white/10 hover:border-white/20 active:scale-95;
-  }
-
-  .pill-button[data-active='true'] {
-    @apply text-ink-950 border-transparent shadow-glow;
-  }
-}
-
-/* ---------------------------------------------------------------------- */
-/* MapLibre GL overrides                                                  */
-/* ---------------------------------------------------------------------- */
-
-.maplibregl-ctrl-top-right {
-  top: 5.5rem;
-  right: 0.75rem;
-}
-
-.maplibregl-ctrl-group {
-  background: rgba(12, 15, 24, 0.75) !important;
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.1) !important;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35) !important;
-  border-radius: 12px !important;
+/* Base styling updated to standard CSS */
+html,
+body {
+  height: 100%;
+  margin: 0;
   overflow: hidden;
+  background-color: #070b14;
+  color: #e7e9f2;
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-.maplibregl-ctrl-group button {
-  background: transparent !important;
+#map {
+  position: absolute;
+  inset: 0;
+  height: 100%;
+  width: 100%;
 }
 
-.maplibregl-ctrl-group button + button {
-  border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+/* Component classes written as standard CSS to bypass @apply linter complaints */
+.glass-panel {
+  background-color: rgb(12 15 24 / 0.7);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgb(255 255 255 / 0.1);
+  box-shadow: var(--tw-shadow-glass, 0 8px 32px rgba(0, 0, 0, 0.35));
+  border-radius: 1rem;
 }
 
-.maplibregl-ctrl-group button .maplibregl-ctrl-icon {
-  filter: invert(1) brightness(1.6);
+.pill-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  border-radius: 9999px;
+  border: 1px solid rgb(255 255 255 / 0.1);
+  background-color: rgb(255 255 255 / 0.05);
+  padding: 0.375rem 0.75rem;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  font-weight: 500;
+  color: #e7e9f2;
+  transition: all 150ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.maplibregl-ctrl-attrib {
-  background: rgba(7, 9, 15, 0.55) !important;
-  color: rgba(231, 233, 242, 0.55) !important;
-  border-radius: 8px 0 0 0 !important;
+.pill-button:hover {
+  background-color: rgb(255 255 255 / 0.1);
+  border-color: rgb(255 255 255 / 0.2);
 }
 
-.maplibregl-ctrl-attrib a {
-  color: rgba(231, 233, 242, 0.75) !important;
+.pill-button:active {
+  scale: 0.95;
 }
 
-.maplibregl-popup-content {
-  background: rgba(12, 15, 24, 0.92) !important;
-  color: #e7e9f2 !important;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 16px !important;
-  padding: 0 !important;
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
-  overflow: hidden;
-}
-
-.maplibregl-popup-tip {
-  display: none !important;
-}
-
-.maplibregl-popup-close-button {
-  color: rgba(231, 233, 242, 0.7) !important;
-  font-size: 18px !important;
-  padding: 6px 10px !important;
-  z-index: 2;
-}
-
-.maplibregl-popup-close-button:hover {
-  background: rgba(255, 255, 255, 0.08) !important;
-  color: #fff !important;
-}
-
-/* Custom DOM marker */
-.biz-marker {
-  width: 22px;
-  height: 22px;
-  border-radius: 999px;
-  border: 2px solid rgba(255, 255, 255, 0.85);
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.45);
-  cursor: pointer;
-  transition: transform 0.15s ease;
-  transform-origin: center;
-}
-
-.biz-marker:hover {
-  transform: scale(1.35);
-}
-
-.biz-marker.is-dim {
-  opacity: 0.18;
-  filter: grayscale(0.6);
-}
-
-.biz-marker.is-selected {
-  transform: scale(1.5);
-  box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.25), 0 2px 14px rgba(0, 0, 0, 0.5);
-}
-
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-
-::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.15);
-  border-radius: 999px;
-}
-
-::-webkit-scrollbar-track {
-  background: transparent;
+.pill-button[data-active='true'] {
+  color: #070b14;
+  border-color: transparent;
 }
