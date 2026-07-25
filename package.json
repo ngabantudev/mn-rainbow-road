@@ -16,7 +16,6 @@
     "maplibre-gl": "^4.7.1"
   },
   "devDependencies": {
-    "@astrojs/check": "^0.9.4",
     "autoprefixer": "^10.5.4",
     "postcss": "^8.5.23",
     "tailwindcss": "^3.4.19",
