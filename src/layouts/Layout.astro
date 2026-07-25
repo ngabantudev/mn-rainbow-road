@@ -1,0 +1,54 @@
+---
+import '../styles/global.css';
+
+interface Props {
+  title?: string;
+  description?: string;
+}
+
+const {
+  title = 'MN Rainbow Road — Queer-Friendly Twin Cities Map',
+  description = 'A 3D map of queer-owned and queer-friendly businesses across Minneapolis & Saint Paul.',
+} = Astro.props;
+---
+
+<!doctype html>
+<html lang="en" class="h-full">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="generator" content={Astro.generator} />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <meta name="theme-color" content="#07090f" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!-- MapLibre fetches the style JSON + vector tiles from here immediately
+         on init; opening the connection during <head> parsing means the
+         TLS handshake is already done by the time the map script runs. -->
+    <link rel="preconnect" href="https://tiles.openfreemap.org" crossorigin />
+    <link rel="dns-prefetch" href="https://tiles.openfreemap.org" />
+    <!--
+      Load the font stylesheet without blocking first paint: it starts
+      downloading immediately (browser priority-hints the preload), but
+      doesn't hold up rendering while it does. Falls back to applying it
+      normally for the no-JS/no-onload case via <noscript>.
+    -->
+    <link
+      rel="preload"
+      as="style"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap"
+      onload="this.onload=null;this.rel='stylesheet'"
+    />
+    <noscript>
+      <link
+        rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap"
+      />
+    </noscript>
+  </head>
+  <body class="h-full">
+    <slot />
+  </body>
+</html>

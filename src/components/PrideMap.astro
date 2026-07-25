@@ -1,0 +1,542 @@
+---
+import { CATEGORY_META, SOURCES, businesses } from '../data/businesses';
+
+const categories = Object.entries(CATEGORY_META);
+const total = businesses.length;
+---
+
+<div class="relative h-full w-full">
+  <div id="map"></div>
+
+  <!-- Loading veil -->
+  <div
+    id="map-loading"
+    class="pointer-events-none absolute inset-0 z-30 flex items-center justify-center bg-ink-950 transition-opacity duration-500"
+  >
+    <div class="flex flex-col items-center gap-3">
+      <div class="h-8 w-8 animate-spin rounded-full border-2 border-white/15 border-t-category-nightlife"></div>
+      <p class="font-display text-sm tracking-wide text-mist-400">Loading the map…</p>
+    </div>
+  </div>
+
+  <!-- Top bar / brand -->
+  <header
+    class="pointer-events-none absolute left-0 right-0 top-0 z-20 flex items-start justify-between gap-3 p-3 sm:p-4"
+  >
+    <div class="glass-panel pointer-events-auto flex items-center gap-2.5 px-3.5 py-2.5 sm:px-4">
+      <span class="text-xl leading-none" aria-hidden="true">🌈</span>
+      <div class="leading-tight">
+        <p class="font-display text-sm font-semibold text-white sm:text-base">MN Rainbow Road</p>
+        <p class="hidden text-[11px] text-mist-500 sm:block">Twin Cities queer business map</p>
+      </div>
+    </div>
+
+    <button
+      id="list-toggle"
+      type="button"
+      class="glass-panel pointer-events-auto flex items-center gap-2 px-3.5 py-2.5 text-xs font-medium text-mist-200 transition hover:text-white sm:hidden"
+      aria-expanded="false"
+      aria-controls="list-panel"
+    >
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <line x1="4" y1="6" x2="20" y2="6"></line>
+        <line x1="4" y1="12" x2="20" y2="12"></line>
+        <line x1="4" y1="18" x2="20" y2="18"></line>
+      </svg>
+      List
+    </button>
+  </header>
+
+  <!-- Control panel -->
+  <div
+    id="control-panel"
+    class="glass-panel pointer-events-auto absolute left-3 top-20 z-20 w-[calc(100%-1.5rem)] max-w-xs animate-slide-up p-4 sm:left-4 sm:top-24"
+  >
+    <div class="flex items-center justify-between gap-3">
+      <div>
+        <p class="font-display text-sm font-semibold text-white">Queer-friendly businesses</p>
+        <p class="text-[11px] text-mist-500"><span id="visible-count">{total}</span> of {total} shown</p>
+      </div>
+      <button
+        id="layer-toggle"
+        type="button"
+        role="switch"
+        aria-checked="true"
+        aria-label="Toggle queer-friendly business layer"
+        class="relative h-6 w-11 shrink-0 rounded-full bg-category-nightlife/80 transition-colors duration-200"
+      >
+        <span
+          id="layer-toggle-knob"
+          class="absolute left-[2px] top-[2px] h-5 w-5 translate-x-5 rounded-full bg-white shadow transition-transform duration-200"
+        ></span>
+      </button>
+    </div>
+
+    <div class="mt-3">
+      <div class="relative">
+        <svg
+          class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-mist-500"
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+        <input
+          id="search-input"
+          type="text"
+          placeholder="Search businesses or neighborhoods…"
+          autocomplete="off"
+          class="w-full rounded-xl border border-white/10 bg-white/5 py-2 pl-8 pr-3 text-xs text-mist-200 placeholder:text-mist-500 outline-none transition focus:border-white/25 focus:bg-white/10"
+        />
+      </div>
+    </div>
+
+    <div id="category-chips" class="mt-3 flex flex-wrap gap-1.5">
+      {
+        categories.map(([key, meta]) => (
+          <button
+            type="button"
+            class="pill-button"
+            data-category={key}
+            data-active="true"
+            style={`--chip-color:${meta.color}`}
+          >
+            <span
+              class="h-2 w-2 rounded-full"
+              style={`background:${meta.color}`}
+            />
+            {meta.label}
+          </button>
+        ))
+      }
+    </div>
+
+    <div class="mt-3 flex items-center justify-between border-t border-white/10 pt-3">
+      <button
+        id="reset-view"
+        type="button"
+        class="text-[11px] font-medium text-mist-400 underline decoration-dotted underline-offset-2 hover:text-white"
+      >
+        Reset view
+      </button>
+      <button
+        id="pitch-toggle"
+        type="button"
+        class="pill-button"
+        data-active="true"
+      >
+        3D
+      </button>
+    </div>
+  </div>
+
+  <!-- List panel (business results) -->
+  <aside
+    id="list-panel"
+    class="glass-panel pointer-events-auto absolute bottom-3 left-3 right-3 z-20 hidden max-h-[42vh] flex-col overflow-hidden sm:bottom-4 sm:left-auto sm:right-4 sm:top-24 sm:h-[calc(100%-8rem)] sm:max-h-none sm:w-80"
+  >
+    <div class="flex items-center justify-between border-b border-white/10 px-4 py-3">
+      <p class="font-display text-xs font-semibold uppercase tracking-wide text-mist-400">Results</p>
+      <button
+        id="list-close"
+        type="button"
+        class="text-mist-500 hover:text-white sm:hidden"
+        aria-label="Close list"
+      >
+        ✕
+      </button>
+    </div>
+    <div id="list-items" class="flex-1 overflow-y-auto p-2"></div>
+  </aside>
+
+  <!-- Legend / attribution note -->
+  <div
+    class="glass-panel pointer-events-auto absolute bottom-3 left-3 z-10 hidden max-w-[15rem] px-3 py-2 text-[10px] leading-relaxed text-mist-500 sm:block"
+  >
+    Sources: <a class="underline hover:text-mist-200" href={SOURCES.minneapolis.url} target="_blank" rel="noopener">Minneapolis.org</a>,{' '}
+    <a class="underline hover:text-mist-200" href={SOURCES.saintpaul.url} target="_blank" rel="noopener">Visit Saint Paul</a>,{' '}
+    <a class="underline hover:text-mist-200" href={SOURCES.mnufc.url} target="_blank" rel="noopener">MNUFC</a>. Pin placement is approximate for some listings — verify before visiting.
+  </div>
+</div>
+
+<script>
+  import type { Marker, Popup } from 'maplibre-gl';
+  import {
+    businesses,
+    CATEGORY_META,
+    type Business,
+    type Category,
+  } from '../data/businesses';
+
+  // maplibre-gl (~200KB gzipped) is dynamically imported below instead of
+  // statically here, so the browser can paint the control-panel chrome and
+  // start fetching this chunk in parallel rather than blocking on it. We
+  // kick the import off on requestIdleCallback (falling back to a 0ms
+  // timeout) so it still starts almost immediately without competing with
+  // the very first paint.
+
+  const MAP_STYLE = 'https://tiles.openfreemap.org/styles/liberty';
+
+  const TWIN_CITIES_CENTER: [number, number] = [-93.211, 44.955];
+  const DEFAULT_ZOOM = 11.4;
+  const DEFAULT_PITCH = 52;
+  const DEFAULT_BEARING = -14;
+
+  const state = {
+    layerVisible: true,
+    activeCategories: new Set<Category>(Object.keys(CATEGORY_META) as Category[]),
+    query: '',
+    is3D: true,
+    selectedId: null as string | null,
+  };
+
+  async function boot() {
+    const [{ default: maplibregl }] = await Promise.all([
+      import('maplibre-gl'),
+      // @ts-ignore - side-effect CSS import, has no type declarations
+      import('maplibre-gl/dist/maplibre-gl.css'),
+    ]);
+
+    const map = new maplibregl.Map({
+      container: 'map',
+      style: MAP_STYLE,
+      center: TWIN_CITIES_CENTER,
+      zoom: DEFAULT_ZOOM,
+      pitch: DEFAULT_PITCH,
+      bearing: DEFAULT_BEARING,
+      antialias: true,
+      attributionControl: false,
+    });
+
+    map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'top-right');
+    map.addControl(
+      new maplibregl.AttributionControl({
+        compact: true,
+        customAttribution: '\u00a9 OpenFreeMap \u00a9 OpenMapTiles \u00a9 OpenStreetMap contributors',
+      }),
+      'bottom-right'
+    );
+
+    // ---------------------------------------------------------------------
+    // Marker management
+    // ---------------------------------------------------------------------
+
+    const markers = new Map<string, { marker: Marker; business: Business }>();
+    let popup: Popup | null = null;
+
+    function categoryColor(category: Category) {
+      return CATEGORY_META[category].color;
+    }
+
+    function buildMarkerEl(business: Business) {
+      const el = document.createElement('button');
+      el.type = 'button';
+      el.className = 'biz-marker';
+      el.style.background = categoryColor(business.category);
+      el.setAttribute('aria-label', business.name);
+      el.dataset.id = business.id;
+      return el;
+    }
+
+    function popupHTML(b: Business) {
+      const color = categoryColor(b.category);
+      const website = b.website
+        ? `<a href="${b.website}" target="_blank" rel="noopener" class="mt-2 inline-flex items-center gap-1 text-xs font-medium" style="color:${color}">Visit website \u2192</a>`
+        : '';
+      const confidenceNote =
+        b.confidence === 'approximate'
+          ? `<p class="mt-2 text-[10px] text-mist-500">Location is approximate \u2014 confirm before visiting.</p>`
+          : '';
+      return `
+        <div class="w-64 p-4 font-body">
+          <div class="flex items-center gap-2">
+            <span class="h-2.5 w-2.5 rounded-full" style="background:${color}"></span>
+            <span class="text-[10px] font-semibold uppercase tracking-wide" style="color:${color}">${CATEGORY_META[b.category].label}</span>
+          </div>
+          <h3 class="mt-1.5 font-display text-sm font-semibold text-white">${b.name}</h3>
+          <p class="mt-1 text-xs leading-relaxed text-mist-400">${b.blurb}</p>
+          <p class="mt-2 text-[11px] text-mist-500">${b.address}</p>
+          ${website}
+          ${confidenceNote}
+        </div>
+      `;
+    }
+
+    function focusBusiness(b: Business, opts: { fly?: boolean } = { fly: true }) {
+      state.selectedId = b.id;
+      updateMarkerStyles();
+
+      if (popup) popup.remove();
+      popup = new maplibregl.Popup({ closeButton: true, offset: 14, maxWidth: '280px' })
+        .setLngLat([b.lng, b.lat])
+        .setHTML(popupHTML(b))
+        .addTo(map);
+
+      popup.on('close', () => {
+        state.selectedId = null;
+        updateMarkerStyles();
+      });
+
+      if (opts.fly) {
+        map.flyTo({
+          center: [b.lng, b.lat],
+          zoom: Math.max(map.getZoom(), 15),
+          pitch: state.is3D ? 60 : 0,
+          duration: 900,
+        });
+      }
+    }
+
+    function passesFilter(b: Business) {
+      if (!state.activeCategories.has(b.category)) return false;
+      if (state.query) {
+        const q = state.query.toLowerCase();
+        return (
+          b.name.toLowerCase().includes(q) ||
+          b.neighborhood.toLowerCase().includes(q) ||
+          b.city.toLowerCase().includes(q)
+        );
+      }
+      return true;
+    }
+
+    function updateMarkerStyles() {
+      let visibleCount = 0;
+      markers.forEach(({ marker, business }) => {
+        const el = marker.getElement();
+        const matches = passesFilter(business);
+        if (matches) visibleCount += 1;
+        el.classList.toggle('is-dim', !matches);
+        el.classList.toggle('is-selected', state.selectedId === business.id);
+        el.style.pointerEvents = state.layerVisible ? 'auto' : 'none';
+      });
+
+      const countEl = document.getElementById('visible-count');
+      if (countEl) countEl.textContent = String(state.layerVisible ? visibleCount : 0);
+
+      renderList();
+    }
+
+    function mountMarkers() {
+      businesses.forEach((b) => {
+        const el = buildMarkerEl(b);
+        el.addEventListener('click', (e) => {
+          e.stopPropagation();
+          focusBusiness(b);
+        });
+        const marker = new maplibregl.Marker({ element: el, anchor: 'center' })
+          .setLngLat([b.lng, b.lat])
+          .addTo(map);
+        markers.set(b.id, { marker, business: b });
+      });
+    }
+
+    function setLayerVisible(visible: boolean) {
+      state.layerVisible = visible;
+      markers.forEach(({ marker }) => {
+        const el = marker.getElement();
+        el.style.display = visible ? '' : 'none';
+      });
+      if (!visible && popup) {
+        popup.remove();
+        popup = null;
+      }
+      updateMarkerStyles();
+    }
+
+    // ---------------------------------------------------------------------
+    // List panel
+    // ---------------------------------------------------------------------
+
+    function renderList() {
+      const container = document.getElementById('list-items');
+      if (!container) return;
+
+      const items = businesses.filter(passesFilter);
+      if (!state.layerVisible || items.length === 0) {
+        container.innerHTML = `<p class="p-4 text-center text-xs text-mist-500">No businesses match your filters.</p>`;
+        return;
+      }
+
+      container.innerHTML = items
+        .map((b) => {
+          const color = categoryColor(b.category);
+          return `
+            <button
+              type="button"
+              data-id="${b.id}"
+              class="list-item flex w-full items-start gap-2.5 rounded-xl px-2.5 py-2.5 text-left transition hover:bg-white/5"
+            >
+              <span class="mt-1 h-2 w-2 shrink-0 rounded-full" style="background:${color}"></span>
+              <span class="min-w-0">
+                <span class="block truncate text-xs font-medium text-mist-200">${b.name}</span>
+                <span class="block truncate text-[10px] text-mist-500">${b.neighborhood}, ${b.city}</span>
+              </span>
+            </button>
+          `;
+        })
+        .join('');
+
+      container.querySelectorAll<HTMLButtonElement>('.list-item').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const b = businesses.find((x) => x.id === btn.dataset.id);
+          if (b) focusBusiness(b);
+        });
+      });
+    }
+
+    // ---------------------------------------------------------------------
+    // UI wiring
+    // ---------------------------------------------------------------------
+
+    function wireControls() {
+      const layerToggle = document.getElementById('layer-toggle')!;
+      const knob = document.getElementById('layer-toggle-knob')!;
+      layerToggle.addEventListener('click', () => {
+        const next = !state.layerVisible;
+        layerToggle.setAttribute('aria-checked', String(next));
+        layerToggle.classList.toggle('bg-category-nightlife/80', next);
+        layerToggle.classList.toggle('bg-white/10', !next);
+        knob.classList.toggle('translate-x-5', next);
+        knob.classList.toggle('translate-x-0', !next);
+        setLayerVisible(next);
+      });
+
+      document.querySelectorAll<HTMLButtonElement>('#category-chips [data-category]').forEach((chip) => {
+        chip.addEventListener('click', () => {
+          const cat = chip.dataset.category as Category;
+          const isActive = chip.dataset.active === 'true';
+          const next = !isActive;
+          chip.dataset.active = String(next);
+          const color = getComputedStyle(chip).getPropertyValue('--chip-color').trim();
+          chip.style.background = next ? color : '';
+          chip.style.color = next ? '#07090f' : '';
+          chip.style.borderColor = next ? 'transparent' : '';
+
+          if (next) state.activeCategories.add(cat);
+          else state.activeCategories.delete(cat);
+          updateMarkerStyles();
+        });
+        // initialize visuals to "active" state
+        const color = chip.style.getPropertyValue('--chip-color');
+        chip.style.background = color;
+        chip.style.color = '#07090f';
+        chip.style.borderColor = 'transparent';
+      });
+
+      const searchInput = document.getElementById('search-input') as HTMLInputElement;
+      searchInput.addEventListener('input', () => {
+        state.query = searchInput.value.trim();
+        updateMarkerStyles();
+      });
+
+      document.getElementById('reset-view')?.addEventListener('click', () => {
+        searchInput.value = '';
+        state.query = '';
+        state.activeCategories = new Set(Object.keys(CATEGORY_META) as Category[]);
+        document.querySelectorAll<HTMLButtonElement>('#category-chips [data-category]').forEach((chip) => {
+          chip.dataset.active = 'true';
+          const color = chip.style.getPropertyValue('--chip-color');
+          chip.style.background = color;
+          chip.style.color = '#07090f';
+          chip.style.borderColor = 'transparent';
+        });
+        if (popup) {
+          popup.remove();
+          popup = null;
+        }
+        state.selectedId = null;
+        map.flyTo({
+          center: TWIN_CITIES_CENTER,
+          zoom: DEFAULT_ZOOM,
+          pitch: state.is3D ? DEFAULT_PITCH : 0,
+          bearing: DEFAULT_BEARING,
+          duration: 900,
+        });
+        updateMarkerStyles();
+      });
+
+      const pitchToggle = document.getElementById('pitch-toggle')!;
+      pitchToggle.addEventListener('click', () => {
+        state.is3D = !state.is3D;
+        pitchToggle.dataset.active = String(state.is3D);
+        pitchToggle.textContent = state.is3D ? '3D' : '2D';
+        pitchToggle.style.background = state.is3D ? '#a463f2' : '';
+        pitchToggle.style.color = state.is3D ? '#07090f' : '';
+        pitchToggle.style.borderColor = state.is3D ? 'transparent' : '';
+        map.easeTo({ pitch: state.is3D ? DEFAULT_PITCH : 0, duration: 600 });
+      });
+      // init pitch button visual
+      pitchToggle.style.background = '#a463f2';
+      pitchToggle.style.color = '#07090f';
+      pitchToggle.style.borderColor = 'transparent';
+
+      const listPanel = document.getElementById('list-panel')!;
+      const listToggle = document.getElementById('list-toggle')!;
+      const listClose = document.getElementById('list-close')!;
+      const openList = () => {
+        listPanel.classList.remove('hidden');
+        listPanel.classList.add('flex');
+        listToggle.setAttribute('aria-expanded', 'true');
+      };
+      const closeList = () => {
+        listPanel.classList.add('hidden');
+        listPanel.classList.remove('flex');
+        listToggle.setAttribute('aria-expanded', 'false');
+      };
+      listToggle.addEventListener('click', () => {
+        const isHidden = listPanel.classList.contains('hidden');
+        isHidden ? openList() : closeList();
+      });
+      listClose.addEventListener('click', closeList);
+
+      const mq = window.matchMedia('(min-width: 640px)');
+      const syncListVisibility = () => {
+        if (mq.matches) {
+          listPanel.classList.remove('hidden');
+          listPanel.classList.add('flex');
+        } else {
+          listPanel.classList.add('hidden');
+          listPanel.classList.remove('flex');
+        }
+      };
+      syncListVisibility();
+      mq.addEventListener('change', syncListVisibility);
+    }
+
+    map.on('load', () => {
+      mountMarkers();
+      wireControls();
+      updateMarkerStyles();
+
+      const veil = document.getElementById('map-loading');
+      if (veil) {
+        veil.style.opacity = '0';
+        setTimeout(() => veil.remove(), 500);
+      }
+    });
+
+    map.on('click', () => {
+      // clicking empty map closes the popup
+      if (popup) {
+        popup.remove();
+        popup = null;
+        state.selectedId = null;
+        updateMarkerStyles();
+      }
+    });
+  }
+
+  // Defer the heavy map bundle so the control-panel shell paints first.
+  const w = window as typeof window & { requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => void };
+  if (typeof w.requestIdleCallback === 'function') {
+    w.requestIdleCallback(boot, { timeout: 1200 });
+  } else {
+    setTimeout(boot, 0);
+  }
+</script>
