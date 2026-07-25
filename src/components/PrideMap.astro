@@ -128,9 +128,9 @@ const total = businesses.length;
         id="pitch-toggle"
         type="button"
         class="pill-button"
-        data-active="true"
+        data-active="false"
       >
-        3D
+        2D
       </button>
     </div>
   </div>
@@ -173,32 +173,26 @@ const total = businesses.length;
     type Category,
   } from '../data/businesses';
 
-  // maplibre-gl (~200KB gzipped) is dynamically imported below instead of
-  // statically here, so the browser can paint the control-panel chrome and
-  // start fetching this chunk in parallel rather than blocking on it. We
-  // kick the import off on requestIdleCallback (falling back to a 0ms
-  // timeout) so it still starts almost immediately without competing with
-  // the very first paint.
-
   const MAP_STYLE = 'https://tiles.openfreemap.org/styles/liberty';
 
   const TWIN_CITIES_CENTER: [number, number] = [-93.211, 44.955];
+  // Updated defaults for 2D and North
   const DEFAULT_ZOOM = 11.4;
-  const DEFAULT_PITCH = 52;
-  const DEFAULT_BEARING = -14;
+  const DEFAULT_PITCH = 0; 
+  const DEFAULT_BEARING = 0;
 
   const state = {
     layerVisible: true,
     activeCategories: new Set<Category>(Object.keys(CATEGORY_META) as Category[]),
     query: '',
-    is3D: true,
+    is3D: false, // Changed to false
     selectedId: null as string | null,
   };
 
   async function boot() {
     const [{ default: maplibregl }] = await Promise.all([
       import('maplibre-gl'),
-      // @ts-ignore - side-effect CSS import, has no type declarations
+      // @ts-ignore
       import('maplibre-gl/dist/maplibre-gl.css'),
     ]);
 
@@ -221,10 +215,6 @@ const total = businesses.length;
       }),
       'bottom-right'
     );
-
-    // ---------------------------------------------------------------------
-    // Marker management
-    // ---------------------------------------------------------------------
 
     const markers = new Map<string, { marker: Marker; business: Business }>();
     let popup: Popup | null = null;
@@ -349,10 +339,6 @@ const total = businesses.length;
       updateMarkerStyles();
     }
 
-    // ---------------------------------------------------------------------
-    // List panel
-    // ---------------------------------------------------------------------
-
     function renderList() {
       const container = document.getElementById('list-items');
       if (!container) return;
@@ -390,10 +376,6 @@ const total = businesses.length;
       });
     }
 
-    // ---------------------------------------------------------------------
-    // UI wiring
-    // ---------------------------------------------------------------------
-
     function wireControls() {
       const layerToggle = document.getElementById('layer-toggle')!;
       const knob = document.getElementById('layer-toggle-knob')!;
@@ -422,7 +404,7 @@ const total = businesses.length;
           else state.activeCategories.delete(cat);
           updateMarkerStyles();
         });
-        // initialize visuals to "active" state
+        
         const color = chip.style.getPropertyValue('--chip-color');
         chip.style.background = color;
         chip.style.color = '#07090f';
@@ -454,7 +436,7 @@ const total = businesses.length;
         map.flyTo({
           center: TWIN_CITIES_CENTER,
           zoom: DEFAULT_ZOOM,
-          pitch: state.is3D ? DEFAULT_PITCH : 0,
+          pitch: state.is3D ? 52 : 0, // Fallback to 52 if in 3D mode
           bearing: DEFAULT_BEARING,
           duration: 900,
         });
@@ -469,12 +451,13 @@ const total = businesses.length;
         pitchToggle.style.background = state.is3D ? '#a463f2' : '';
         pitchToggle.style.color = state.is3D ? '#07090f' : '';
         pitchToggle.style.borderColor = state.is3D ? 'transparent' : '';
-        map.easeTo({ pitch: state.is3D ? DEFAULT_PITCH : 0, duration: 600 });
+        map.easeTo({ pitch: state.is3D ? 52 : 0, duration: 600 });
       });
-      // init pitch button visual
-      pitchToggle.style.background = '#a463f2';
-      pitchToggle.style.color = '#07090f';
-      pitchToggle.style.borderColor = 'transparent';
+      
+      // Init pitch button visual (Updated to start blank for 2D)
+      pitchToggle.style.background = '';
+      pitchToggle.style.color = '';
+      pitchToggle.style.borderColor = '';
 
       const listPanel = document.getElementById('list-panel')!;
       const listToggle = document.getElementById('list-toggle')!;
@@ -522,7 +505,6 @@ const total = businesses.length;
     });
 
     map.on('click', () => {
-      // clicking empty map closes the popup
       if (popup) {
         popup.remove();
         popup = null;
@@ -532,7 +514,6 @@ const total = businesses.length;
     });
   }
 
-  // Defer the heavy map bundle so the control-panel shell paints first.
   const w = window as typeof window & { requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => void };
   if (typeof w.requestIdleCallback === 'function') {
     w.requestIdleCallback(boot, { timeout: 1200 });
@@ -540,3 +521,31 @@ const total = businesses.length;
     setTimeout(boot, 0);
   }
 </script>
+
+<style is:global>
+  /* This ensures Astro doesn't hide the CSS from your dynamically created map markers */
+  .biz-marker {
+    width: 24px;
+    height: 24px;
+    border: 2px solid white;
+    border-radius: 50%;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+    cursor: pointer;
+    transition: transform 0.2s ease, opacity 0.2s ease;
+  }
+  
+  .biz-marker:hover {
+    transform: scale(1.1);
+  }
+
+  .biz-marker.is-dim {
+    opacity: 0.3;
+    pointer-events: none;
+  }
+
+  .biz-marker.is-selected {
+    transform: scale(1.3);
+    border: 2px solid black;
+    z-index: 10;
+  }
+</style>
